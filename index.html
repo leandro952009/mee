@@ -3,203 +3,968 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmic Dust Cloud</title>
+    <title>My Creative Canvas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles to ensure canvas fills available space and looks good */
+        /* General body styling for a dark background and centered content */
         body {
             font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
-            background-color: #0d1117; /* Dark background for space theme */
-            overflow: hidden; /* Prevent scrollbars */
+            background-color: #1a202c; /* Dark background */
             margin: 0;
             display: flex;
+            flex-direction: column; /* Arrange items vertically */
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: 100vh; /* Full viewport height */
+            color: #e2e8f0; /* Light text color */
+            padding: 1rem; /* Add some padding around the content */
+            box-sizing: border-box; /* Include padding in element's total width and height */
         }
+
+        /* Canvas styling */
         canvas {
-            display: block; /* Remove extra space below canvas */
-            background-color: transparent; /* Canvas background will be transparent, body background shows */
-            border-radius: 1rem; /* Rounded corners for the canvas */
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); /* Subtle glow effect */
+            background-color: white; /* Default drawing surface background */
+            border: 2px solid #4a5568; /* Subtle border */
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), 0 0 0 5px rgba(255, 255, 255, 0.05) inset; /* Deep shadow with inner glow */
+            cursor: crosshair; /* Indicate drawing mode */
+            touch-action: none; /* Prevent browser default touch actions like scrolling */
             max-width: 95vw; /* Ensure it fits on smaller screens */
-            max-height: 95vh; /* Ensure it fits vertically */
-            cursor: crosshair; /* Indicate interactivity */
+            max-height: 70vh; /* Limit height to leave room for controls */
+        }
+
+        /* Control panel styling */
+        .controls {
+            background-color: #2d3748; /* Darker background for controls */
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+            gap: 1rem; /* Space between control elements */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            color: #a0aec0; /* Lighter gray for labels */
+            font-weight: 500;
+        }
+
+        /* Button styling */
+        .action-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2); /* Gradient button */
+            color: white;
+            border: none;
+            border-radius: 0.5rem; /* Rounded corners */
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+        }
+        .action-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Active tool button styling */
+        .action-button.active {
+            background: linear-gradient(135deg, #4CAF50, #8BC34A); /* Green gradient for active tool */
+            box-shadow: 0 0 0 3px #4CAF50, 0 5px 15px rgba(0, 0, 0, 0.4); /* Green glow */
+        }
+
+        /* Input styling for color pickers */
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            background: none; /* Remove default background */
+            padding: 0;
+            overflow: hidden; /* Hide default color picker border */
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #4a5568; /* Custom border */
+            border-radius: 0.5rem;
+        }
+        input[type="color"]::-moz-color-swatch {
+            border: 2px solid #4a5568; /* Custom border */
+            border-radius: 0.5rem;
+        }
+
+        /* Input styling for range sliders */
+        input[type="range"] {
+            width: 100px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            background: #4a5568;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -6px;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        input[type="range"]:focus::-webkit-slider-runnable-track {
+            background: #5a67d8;
+        }
+
+        /* Loading spinner for LLM suggestion */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Text input for drawing description */
+        .drawing-description-input, .ai-conversation-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #4a5568;
+            background-color: #1f2937;
+            color: #e2e8f0;
+            font-size: 1rem;
+            margin-top: 1rem;
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        .drawing-description-input::placeholder, .ai-conversation-input::placeholder {
+            color: #a0aec0;
+        }
+
+        /* Output area for LLM generated text */
+        .llm-output-area {
+            text-align: center;
+            max-width: 600px;
+            padding: 1rem;
+            border-radius: 1rem;
+            background-color: #2d3748;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-top: 1.5rem;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            min-height: 50px; /* Ensure it has some height even when empty */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-text {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #718096;
         }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
     <h1 class="text-3xl md:text-5xl font-bold text-white mb-6 text-center">
-        Cosmic Dust Cloud
+        My Creative Canvas
     </h1>
     <p class="text-sm md:text-lg text-gray-400 mb-8 text-center max-w-2xl">
-        Move your mouse to interact with the cosmic dust particles. Watch them react to your presence!
+        Draw, erase, change colors, and undo your actions!
     </p>
-    <canvas id="cosmicDustCanvas" class="w-full h-full"></canvas>
+
+    <canvas id="drawingCanvas" width="800" height="500"></canvas>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="colorPicker" class="control-label">Brush Color:</label>
+            <input type="color" id="colorPicker" value="#000000">
+        </div>
+
+        <div class="control-group">
+            <label for="bgColorPicker" class="control-label">Background:</label>
+            <input type="color" id="bgColorPicker" value="#FFFFFF">
+        </div>
+
+        <div class="control-group">
+            <label for="lineWidthSlider" class="control-label">Line Width:</label>
+            <input type="range" id="lineWidthSlider" min="1" max="20" value="5">
+            <span id="lineWidthValue" class="text-sm text-gray-400">5px</span>
+        </div>
+
+        <button id="brushTool" class="action-button active">Brush</button>
+        <button id="eraserTool" class="action-button">Eraser</button>
+        <button id="undoButton" class="action-button">Undo</button>
+        <button id="redoButton" class="action-button">Redo</button>
+        <button id="clearButton" class="action-button">Clear All</button>
+    </div>
+
+    <input type="text" id="drawingDescriptionInput" class="drawing-description-input" placeholder="Describe your drawing (for story/perfection/word learning)">
+    <div class="flex flex-wrap gap-4 justify-center mt-4">
+        <button id="describeDrawingButton" class="action-button">
+            ✨ Get Story/Title ✨
+        </button>
+        <button id="getEmojiPromptButton" class="action-button bg-gradient-to-r from-yellow-400 to-orange-500">
+            💡 Emoji Prompt 💡
+        </button>
+        <button id="perfectDrawingButton" class="action-button bg-gradient-to-r from-purple-500 to-indigo-600">
+            ✨ Perfect My Drawing Idea ✨
+        </button>
+        <button id="aiLearnWordButton" class="action-button bg-gradient-to-r from-cyan-500 to-blue-700">
+            🧠 AI Learns Word (Draw) 🧠
+        </button>
+    </div>
+
+    <input type="text" id="aiConversationInput" class="ai-conversation-input" placeholder="Ask AI to draw a response (e.g., 'Draw a happy face')">
+    <button id="aiRespondWithDrawingButton" class="action-button bg-gradient-to-r from-pink-500 to-red-500 mt-4">
+        💬 AI Responds with Drawing 💬
+    </button>
+
+    <div id="llmOutput" class="llm-output-area">
+        Your AI-generated text or drawing status will appear here!
+    </div>
+
+    <p class="footer-text">
+        Built with creativity by Gemini
+    </p>
 
     <script>
-        // Get the canvas element and its 2D rendering context
-        const canvas = document.getElementById('cosmicDustCanvas');
+        // Get references to the canvas and its 2D rendering context
+        const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
 
-        // --- Configuration Variables ---
-        const NUM_PARTICLES = 1500; // Number of particles in the dust cloud
-        const PARTICLE_MIN_SIZE = 0.5; // Minimum particle radius
-        const PARTICLE_MAX_SIZE = 2.5; // Maximum particle radius
-        const PARTICLE_SPEED_MULTIPLIER = 0.05; // Base speed of particles
-        const INTERACTION_RADIUS = 150; // Radius around mouse where particles react
-        const INTERACTION_FORCE = 0.8; // How strongly particles repel/attract
-        const PARTICLE_COLOR = 'rgba(255, 255, 255, 0.6)'; // Color of particles (white with transparency)
-        const CONNECTION_DISTANCE = 80; // Max distance for particles to connect with lines
-        const CONNECTION_COLOR = 'rgba(0, 255, 255, 0.05)'; // Color of connection lines (cyan with transparency)
+        // Get references to control elements
+        const colorPicker = document.getElementById('colorPicker');
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        const lineWidthSlider = document.getElementById('lineWidthSlider');
+        const lineWidthValueSpan = document.getElementById('lineWidthValue');
+        const clearButton = document.getElementById('clearButton');
+        const brushToolButton = document.getElementById('brushTool');
+        const eraserToolButton = document.getElementById('eraserTool');
+        const undoButton = document.getElementById('undoButton');
+        const redoButton = document.getElementById('redoButton');
 
-        // Array to store all particle objects
-        let particles = [];
+        // LLM feature elements
+        const drawingDescriptionInput = document.getElementById('drawingDescriptionInput');
+        const describeDrawingButton = document.getElementById('describeDrawingButton');
+        const getEmojiPromptButton = document.getElementById('getEmojiPromptButton');
+        const perfectDrawingButton = document.getElementById('perfectDrawingButton');
+        const aiLearnWordButton = document.getElementById('aiLearnWordButton');
+        const aiConversationInput = document.getElementById('aiConversationInput');
+        const aiRespondWithDrawingButton = document.getElementById('aiRespondWithDrawingButton');
+        const llmOutputDiv = document.getElementById('llmOutput');
 
-        // Mouse position object
-        let mouse = {
-            x: undefined,
-            y: undefined,
-            isDown: false // Track if mouse button is pressed
-        };
+        // --- Drawing State Variables ---
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = colorPicker.value;
+        let currentLineWidth = parseInt(lineWidthSlider.value);
+        let activeTool = 'brush'; // 'brush' or 'eraser'
 
-        // --- Particle Class Definition ---
-        class Particle {
-            constructor(x, y, radius, color) {
-                this.x = x;
-                this.y = y;
-                this.radius = radius;
-                this.color = color;
+        // --- Undo/Redo History ---
+        let history = [];
+        let historyIndex = -1;
 
-                // Random velocity for particles
-                this.velocity = {
-                    x: (Math.random() - 0.5) * PARTICLE_SPEED_MULTIPLIER,
-                    y: (Math.random() - 0.5) * PARTICLE_SPEED_MULTIPLIER
-                };
-            }
-
-            // Method to draw the particle
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-            }
-
-            // Method to update particle position and handle interactions
-            update() {
-                // Bounce off canvas edges
-                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
-                    this.velocity.x *= -1;
-                }
-                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
-                    this.velocity.y *= -1;
-                }
-
-                // Apply velocity
-                this.x += this.velocity.x;
-                this.y += this.velocity.y;
-
-                // Mouse interaction: repel particles if mouse is near
-                if (mouse.x !== undefined && mouse.y !== undefined) {
-                    const dx = this.x - mouse.x;
-                    const dy = this.y - mouse.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < INTERACTION_RADIUS) {
-                        const forceDirectionX = dx / distance;
-                        const forceDirectionY = dy / distance;
-                        const force = (INTERACTION_RADIUS - distance) / INTERACTION_RADIUS * INTERACTION_FORCE;
-
-                        // Apply force to velocity
-                        this.velocity.x += forceDirectionX * force;
-                        this.velocity.y += forceDirectionY * force;
-                    }
-                }
-
-                this.draw();
-            }
+        // --- Initial Canvas Setup ---
+        // Function to set canvas dimensions responsively
+        function setCanvasDimensions() {
+            canvas.width = Math.min(window.innerWidth * 0.95, 800);
+            canvas.height = Math.min(window.innerHeight * 0.7, 500);
+            drawBackground();
+            // No need to restore drawing here, as it's handled by saveState on initial load
+            // and by restoreState/putImageData on actual undo/redo/resize
+            applyDrawingStyles();
         }
 
-        // --- Initialization Function ---
-        function init() {
-            // Clear existing particles
-            particles = [];
-
-            // Set canvas dimensions to fill the window
-            canvas.width = window.innerWidth * 0.9; // 90% of window width
-            canvas.height = window.innerHeight * 0.8; // 80% of window height
-
-            // Create particles and add them to the array
-            for (let i = 0; i < NUM_PARTICLES; i++) {
-                const radius = Math.random() * (PARTICLE_MAX_SIZE - PARTICLE_MIN_SIZE) + PARTICLE_MIN_SIZE;
-                const x = Math.random() * (canvas.width - radius * 2) + radius;
-                const y = Math.random() * (canvas.height - radius * 2) + radius;
-                particles.push(new Particle(x, y, radius, PARTICLE_COLOR));
-            }
+        // Apply current drawing styles to context
+        function applyDrawingStyles() {
+            ctx.strokeStyle = activeTool === 'brush' ? currentColor : bgColorPicker.value;
+            ctx.lineWidth = currentLineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
         }
 
-        // --- Animation Loop ---
-        function animate() {
-            // Clear the entire canvas for the next frame
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Update and draw each particle
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-
-                // Draw lines between nearby particles
-                for (let j = i; j < particles.length; j++) {
-                    const p1 = particles[i];
-                    const p2 = particles[j];
-
-                    const dx = p1.x - p2.x;
-                    const dy = p1.y - p2.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < CONNECTION_DISTANCE) {
-                        ctx.beginPath();
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        // Make lines more transparent the further apart the particles are
-                        ctx.strokeStyle = `rgba(0, 255, 255, ${CONNECTION_COLOR.split(',')[3].replace(')', '') * (1 - distance / CONNECTION_DISTANCE)})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.stroke();
-                    }
-                }
-            }
-
-            // Request the next animation frame
-            requestAnimationFrame(animate);
+        // Function to draw the background color
+        function drawBackground() {
+            ctx.fillStyle = bgColorPicker.value;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // --- Event Listeners ---
+        // Save current canvas state to history
+        function saveState() {
+            // If we are "undoing" and then draw something new,
+            // we need to clear out the "redo" history
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+            history.push(canvas.toDataURL());
+            historyIndex++;
+            console.log(`State saved. History length: ${history.length}, Index: ${historyIndex}`);
+        }
 
-        // Update mouse position on mouse move
-        canvas.addEventListener('mousemove', (event) => {
-            // Get mouse position relative to the canvas
+        // Restore canvas state from history
+        function restoreState() {
+            if (historyIndex < 0) {
+                // If history is empty, just clear to background
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBackground();
+                return;
+            }
+
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas first
+                drawBackground(); // Redraw background
+                ctx.drawImage(img, 0, 0); // Draw the saved image data
+                applyDrawingStyles(); // Re-apply drawing styles
+            };
+            img.src = history[historyIndex];
+            console.log(`State restored. History index: ${historyIndex}`);
+        }
+
+        // Initialize canvas and save initial state
+        setCanvasDimensions();
+        saveState(); // Save the initial blank canvas state
+
+        // --- Event Listeners for Drawing ---
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            applyDrawingStyles(); // Ensure correct tool color/width is applied
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (isDrawing) { // Only save state if a drawing action actually occurred
+                isDrawing = false;
+                saveState();
+            }
+        });
+
+        canvas.addEventListener('mouseout', () => {
+            if (isDrawing) { // Only save state if a drawing action actually occurred
+                isDrawing = false;
+                saveState();
+            }
+        });
+
+        // --- Touch Events for Mobile Drawing ---
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling and other default touch behaviors
+            const touch = e.touches[0];
+            isDrawing = true;
             const rect = canvas.getBoundingClientRect();
-            mouse.x = event.clientX - rect.left;
-            mouse.y = event.clientY - rect.top;
+            [lastX, lastY] = [touch.clientX - rect.left, touch.clientY - rect.top];
+            applyDrawingStyles(); // Ensure correct tool color/width is applied
         });
 
-        // Reset mouse position when mouse leaves the canvas
-        canvas.addEventListener('mouseleave', () => {
-            mouse.x = undefined;
-            mouse.y = undefined;
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            if (!isDrawing) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            ctx.stroke();
+            [lastX, lastY] = [touch.clientX - rect.left, touch.clientY - rect.top];
         });
 
-        // Re-initialize particles and canvas size on window resize
+        canvas.addEventListener('touchend', () => {
+            if (isDrawing) { // Only save state if a drawing action actually occurred
+                isDrawing = false;
+                saveState();
+            }
+        });
+
+        canvas.addEventListener('touchcancel', () => {
+            if (isDrawing) { // Only save state if a drawing action actually occurred
+                isDrawing = false;
+                saveState();
+            }
+        });
+
+        // --- Event Listeners for Controls ---
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+            if (activeTool === 'brush') {
+                ctx.strokeStyle = currentColor;
+            }
+        });
+
+        bgColorPicker.addEventListener('input', (e) => {
+            drawBackground();
+            // Redraw existing content on top of new background
+            if (historyIndex >= 0 && history[historyIndex]) { // Check if there's a valid state to redraw
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                    saveState(); // Save state after background change
+                };
+                img.src = history[historyIndex];
+            } else {
+                saveState(); // Save state even if canvas was empty (only background)
+            }
+        });
+
+        lineWidthSlider.addEventListener('input', (e) => {
+            currentLineWidth = parseInt(e.target.value);
+            ctx.lineWidth = currentLineWidth;
+            lineWidthValueSpan.textContent = `${currentLineWidth}px`;
+        });
+
+        clearButton.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            history = []; // Clear history
+            historyIndex = -1; // Reset history index
+            saveState(); // Save the new cleared state (just background)
+        });
+
+        brushToolButton.addEventListener('click', () => {
+            activeTool = 'brush';
+            brushToolButton.classList.add('active');
+            eraserToolButton.classList.remove('active');
+            applyDrawingStyles();
+        });
+
+        eraserToolButton.addEventListener('click', () => {
+            activeTool = 'eraser';
+            eraserToolButton.classList.add('active');
+            brushToolButton.classList.remove('active');
+            applyDrawingStyles();
+        });
+
+        undoButton.addEventListener('click', () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                restoreState();
+            } else if (historyIndex === 0) { // If at the very first state, clear to initial background
+                historyIndex--; // Go to -1, which means empty canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBackground();
+            }
+            console.log(`Undo. Current index: ${historyIndex}`);
+        });
+
+        redoButton.addEventListener('click', () => {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                restoreState();
+            }
+            console.log(`Redo. Current index: ${historyIndex}`);
+        });
+
         window.addEventListener('resize', () => {
-            init(); // Re-initialize particles to fit new canvas size
+            // Save the current state before resizing to preserve drawing
+            const currentDrawingData = canvas.toDataURL();
+            setCanvasDimensions(); // Adjust dimensions and redraw background
+            // Draw the saved content back onto the resized canvas
+            const img = new Image();
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Scale image to new canvas size
+                applyDrawingStyles(); // Re-apply styles
+            };
+            img.src = currentDrawingData;
+            // No need to saveState here, as it's a resize, not a user drawing action
         });
 
-        // --- Start the application ---
-        // Initialize the canvas and particles when the window loads
-        window.onload = function() {
-            init();
-            animate(); // Start the animation loop
+        // Function to disable all LLM-related buttons and inputs
+        function disableAllLlmFeatures(disabled) {
+            describeDrawingButton.disabled = disabled;
+            getEmojiPromptButton.disabled = disabled;
+            perfectDrawingButton.disabled = disabled;
+            aiLearnWordButton.disabled = disabled;
+            aiRespondWithDrawingButton.disabled = disabled;
+            drawingDescriptionInput.disabled = disabled;
+            aiConversationInput.disabled = disabled;
+        }
+
+        // Function to execute drawing commands from LLM
+        function executeDrawingCommands(commands) {
+            // Clear canvas before AI draws and save this state
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            saveState(); // Save the cleared state as a new history entry
+
+            commands.forEach(cmd => {
+                // Set drawing styles for the current command
+                ctx.strokeStyle = cmd.color;
+                ctx.fillStyle = cmd.color; // Use same color for fill
+                ctx.lineWidth = cmd.lineWidth;
+                ctx.font = `${cmd.fontSize || 20}px ${cmd.fontFamily || 'sans-serif'}`;
+                ctx.textAlign = cmd.textAlign || 'left';
+
+                ctx.beginPath(); // Always start a new path for each command
+                switch (cmd.type) {
+                    case 'line':
+                        ctx.moveTo(cmd.x1, cmd.y1);
+                        ctx.lineTo(cmd.x2, cmd.y2);
+                        ctx.stroke();
+                        break;
+                    case 'circle':
+                        ctx.arc(cmd.centerX, cmd.centerY, cmd.radius, 0, Math.PI * 2);
+                        if (cmd.fill) {
+                            ctx.fill();
+                        } else {
+                            ctx.stroke();
+                        }
+                        break;
+                    case 'rectangle':
+                        if (cmd.fill) {
+                            ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                        } else {
+                            ctx.strokeRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                        }
+                        break;
+                    case 'arc':
+                        // Ensure angles are within 0 to 2*PI range for consistency
+                        const start = cmd.startAngle % (2 * Math.PI);
+                        const end = cmd.endAngle % (2 * Math.PI);
+                        ctx.arc(cmd.centerX, cmd.centerY, cmd.radius, start, end, cmd.counterclockwise || false);
+                        if (cmd.fill) {
+                            ctx.fill();
+                        } else {
+                            ctx.stroke();
+                        }
+                        break;
+                    case 'polygon':
+                        if (cmd.points && cmd.points.length >= 3) {
+                            ctx.moveTo(cmd.points[0][0], cmd.points[0][1]);
+                            for (let i = 1; i < cmd.points.length; i++) {
+                                ctx.lineTo(cmd.points[i][0], cmd.points[i][1]);
+                            }
+                            ctx.closePath(); // Close the polygon path
+                            if (cmd.fill) {
+                                ctx.fill();
+                            } else {
+                                ctx.stroke();
+                            }
+                        }
+                        break;
+                    case 'text':
+                        if (cmd.text) {
+                            if (cmd.fill) {
+                                ctx.fillText(cmd.text, cmd.x, cmd.y);
+                            } else {
+                                ctx.strokeText(cmd.text, cmd.x, cmd.y);
+                            }
+                        }
+                        break;
+                    default:
+                        console.warn("Unknown drawing command type:", cmd.type);
+                }
+            });
+            saveState(); // Save the AI's completed drawing to history
+        }
+
+        // Define the schema for the AI's drawing instructions (shared for all drawing LLM calls)
+        const drawingResponseSchema = {
+            type: "ARRAY",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    type: { type: "STRING", enum: ["line", "circle", "rectangle", "arc", "polygon", "text"] },
+                    color: { type: "STRING", pattern: "^#[0-9a-fA-F]{6}$" }, // Hex color
+                    lineWidth: { type: "NUMBER", minimum: 1, maximum: 10 },
+                    fill: { type: "BOOLEAN", default: false }, // For circle/rectangle/polygon
+                    x1: { type: "NUMBER", minimum: 0, maximum: canvas.width },
+                    y1: { type: "NUMBER", minimum: 0, maximum: canvas.height },
+                    x2: { type: "NUMBER", minimum: 0, maximum: canvas.width },
+                    y2: { type: "NUMBER", minimum: 0, maximum: canvas.height },
+                    centerX: { type: "NUMBER", minimum: 0, maximum: canvas.width },
+                    centerY: { type: "NUMBER", minimum: 0, maximum: canvas.height },
+                    radius: { type: "NUMBER", minimum: 5, maximum: 100 },
+                    startAngle: { type: "NUMBER", minimum: 0, maximum: 6.28 }, // 0 to 2*PI
+                    endAngle: { type: "NUMBER", minimum: 0, maximum: 6.28 },
+                    counterclockwise: { type: "BOOLEAN", default: false },
+                    x: { type: "NUMBER", minimum: 0, maximum: canvas.width },
+                    y: { type: "NUMBER", minimum: 0, maximum: canvas.height },
+                    width: { type: "NUMBER", minimum: 10, maximum: 200 },
+                    height: { type: "NUMBER", minimum: 10, maximum: 200 },
+                    points: {
+                        type: "ARRAY",
+                        items: { type: "ARRAY", items: { type: "NUMBER" }, minItems: 2, maxItems: 2 },
+                        minItems: 3
+                    },
+                    text: { type: "STRING" },
+                    fontSize: { type: "NUMBER", minimum: 10, maximum: 50 },
+                    fontFamily: { type: "STRING", default: "sans-serif" },
+                    textAlign: { type: "STRING", enum: ["left", "center", "right"], default: "left" }
+                },
+                required: ["type", "color", "lineWidth"]
+            }
         };
+
+        // --- LLM Feature: Get Story/Title for Drawing ---
+        describeDrawingButton.addEventListener('click', async () => {
+            const description = drawingDescriptionInput.value.trim();
+            if (!description) {
+                llmOutputDiv.textContent = "Please type a description of your drawing first!";
+                return;
+            }
+
+            llmOutputDiv.innerHTML = '<span class="spinner"></span> Generating creative text...';
+            disableAllLlmFeatures(true);
+
+            try {
+                const prompt = `Given the drawing described as "${description}", generate a very short, imaginative story (2-3 sentences) or a creative, evocative title (1-2 sentences). Focus on a whimsical, fantastical, or intriguing tone. Do not include any other text or conversational filler.`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    llmOutputDiv.textContent = text;
+                } else {
+                    llmOutputDiv.textContent = "Could not generate creative text. Please try again.";
+                    console.error("Unexpected API response structure:", result);
+                }
+            } catch (error) {
+                console.error("Error fetching creative text:", error);
+                llmOutputDiv.textContent = `Error: ${error.message}. Please try again.`;
+            } finally {
+                disableAllLlmFeatures(false);
+            }
+        });
+
+        // --- LLM Feature: Get Emoji Drawing Prompt ---
+        getEmojiPromptButton.addEventListener('click', async () => {
+            llmOutputDiv.innerHTML = '<span class="spinner"></span> Generating emoji prompt...';
+            disableAllLlmFeatures(true);
+
+            try {
+                const prompt = "Generate a very short drawing prompt (1-3 words) using only emojis. Example: '🚀🌌👽', '🌳🏠☀️', '🌧️🐸🍄'. Do not include any other text or conversational filler.";
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    llmOutputDiv.textContent = text;
+                } else {
+                    llmOutputDiv.textContent = "Failed to generate emoji prompt. Try again!";
+                    console.error("Unexpected API response structure:", result);
+                }
+            } catch (error) {
+                console.error("Error fetching emoji prompt:", error);
+                llmOutputDiv.textContent = `Error: ${error.message}. Emoji generator is shy.`;
+            } finally {
+                disableAllLlmFeatures(false);
+            }
+        });
+
+        // --- LLM Feature: Perfect My Drawing Idea ---
+        perfectDrawingButton.addEventListener('click', async () => {
+            const description = drawingDescriptionInput.value.trim();
+            if (!description) {
+                llmOutputDiv.textContent = "Please describe your drawing idea to perfect it!";
+                return;
+            }
+
+            llmOutputDiv.innerHTML = '<span class="spinner"></span> Perfecting your idea...';
+            disableAllLlmFeatures(true);
+
+            try {
+                const prompt = `Take the following drawing idea: "${description}". Enhance it by adding more creative, imaginative, and visually rich details, making it sound more "perfect" or elaborate. Keep the perfected idea to 2-4 sentences. Focus on a positive, inspiring tone. Do not include any other text or conversational filler.`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    llmOutputDiv.textContent = text;
+                } else {
+                    llmOutputDiv.textContent = "Could not perfect the idea. Perhaps it was already flawless!";
+                    console.error("Unexpected API response structure:", result);
+                }
+            } catch (error) {
+                console.error("Error perfecting drawing idea:", error);
+                llmOutputDiv.textContent = `Error: ${error.message}. Perfection is hard!`;
+            } finally {
+                disableAllLlmFeatures(false);
+            }
+        });
+
+        // --- NEW LLM Feature: AI Draw for Me! ---
+        aiDrawButton.addEventListener('click', async () => {
+            const drawingPrompt = drawingDescriptionInput.value.trim();
+            if (!drawingPrompt) {
+                llmOutputDiv.textContent = "Please type what you want the AI to draw in the description box!";
+                return;
+            }
+
+            llmOutputDiv.innerHTML = '<span class="spinner"></span> AI is drawing...';
+            disableAllLlmFeatures(true);
+
+            try {
+                const prompt = `Based on the user's request: "${drawingPrompt}", generate a JSON array of 3 to 10 simple drawing commands for an HTML Canvas. Use 'line', 'circle', 'rectangle', 'arc', 'polygon', or 'text' types. Ensure coordinates, dimensions, and colors are within the canvas bounds (width: ${canvas.width}, height: ${canvas.height}). For polygons, provide at least 3 points. For arcs, use radians (0 to 6.28). For text, provide a simple font and size. Use varied colors and line widths. Combine shapes creatively.`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: drawingResponseSchema
+                    }
+                };
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const drawingCommands = JSON.parse(jsonText);
+                    executeDrawingCommands(drawingCommands);
+                    llmOutputDiv.textContent = "AI has drawn your request!";
+                } else {
+                    llmOutputDiv.textContent = "AI could not generate drawing commands. Try a simpler request!";
+                    console.error("Unexpected API response structure or empty content:", result);
+                }
+            } catch (error) {
+                console.error("Error drawing with AI:", error);
+                llmOutputDiv.textContent = `Error: ${error.message}. AI drawing failed.`;
+            } finally {
+                disableAllLlmFeatures(false);
+            }
+        });
+
+        // --- NEW LLM Feature: AI Learns Word (Draw) ---
+        aiLearnWordButton.addEventListener('click', async () => {
+            const wordToLearn = drawingDescriptionInput.value.trim();
+            if (!wordToLearn) {
+                llmOutputDiv.textContent = "Please type a word for the AI to learn (draw) in the description box!";
+                return;
+            }
+
+            llmOutputDiv.innerHTML = `<span class="spinner"></span> AI is learning "${wordToLearn}" by drawing...`;
+            disableAllLlmFeatures(true);
+
+            try {
+                const prompt = `Generate a JSON array of 3 to 8 simple drawing commands (line, circle, rectangle, arc, polygon, text) that visually represent the meaning of the word: "${wordToLearn}". Ensure coordinates, dimensions, and colors are within the canvas bounds (width: ${canvas.width}, height: ${canvas.height}). Use varied colors and line widths. If appropriate, include the word itself as text.`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: drawingResponseSchema
+                    }
+                };
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const drawingCommands = JSON.parse(jsonText);
+                    executeDrawingCommands(drawingCommands);
+                    llmOutputDiv.textContent = `AI has drawn the meaning of "${wordToLearn}"!`;
+                } else {
+                    llmOutputDiv.textContent = `AI could not learn (draw) "${wordToLearn}". Try another word!`;
+                    console.error("Unexpected API response structure or empty content:", result);
+                }
+            } catch (error) {
+                console.error(`Error learning (drawing) word "${wordToLearn}":`, error);
+                llmOutputDiv.textContent = `Error: ${error.message}. AI learning failed.`;
+            } finally {
+                disableAllLlmFeatures(false);
+            }
+        });
+
+        // --- NEW LLM Feature: AI Responds with Drawing ---
+        aiRespondWithDrawingButton.addEventListener('click', async () => {
+            const conversationPrompt = aiConversationInput.value.trim();
+            if (!conversationPrompt) {
+                llmOutputDiv.textContent = "Please type your question or command for the AI to draw!";
+                return;
+            }
+
+            llmOutputDiv.innerHTML = `<span class="spinner"></span> AI is thinking and drawing its response...`;
+            disableAllLlmFeatures(true);
+
+            try {
+                const prompt = `The user asks: "${conversationPrompt}". Respond by generating a JSON array of 3 to 10 simple drawing commands (line, circle, rectangle, arc, polygon, text) that visually answer or represent the response to this question/command. Ensure coordinates, dimensions, and colors are within the canvas bounds (width: ${canvas.width}, height: ${canvas.height}). Use varied colors and line widths. If appropriate, include text as part of the drawing.`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: drawingResponseSchema
+                    }
+                };
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const drawingCommands = JSON.parse(jsonText);
+                    executeDrawingCommands(drawingCommands);
+                    llmOutputDiv.textContent = `AI has drawn its response to: "${conversationPrompt}"`;
+                } else {
+                    llmOutputDiv.textContent = `AI could not draw a response to "${conversationPrompt}". Try rephrasing!`;
+                    console.error("Unexpected API response structure or empty content:", result);
+                }
+            } catch (error) {
+                console.error(`Error responding with drawing to "${conversationPrompt}":`, error);
+                llmOutputDiv.textContent = `Error: ${error.message}. AI drawing response failed.`;
+            } finally {
+                disableAllLlmFeatures(false);
+            }
+        });
+
+        console.log("Enhanced Freehand Drawing App script loaded and initialized.");
     </script>
 </body>
 </html>
