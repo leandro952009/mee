@@ -1,230 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Kids Drawing Website</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f0f8ff; }
-    header { background: #4fc3f7; color: #fff; padding: 1em; text-align: center; }
-    #toolbar {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      background: #e1f5fe; padding: 10px; justify-content: center;
-    }
-    #toolbar > * { margin: 0 5px; }
-    #canvas-container { display: flex; justify-content: center; margin: 20px 0; }
-    canvas { border: 2px solid #4fc3f7; border-radius: 8px; background: #fff; touch-action: none; }
-    #gallery { padding: 1em; }
-    .gallery-img { max-width: 150px; max-height: 100px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
-    button, select, input[type="color"] { padding: 5px; border-radius: 4px; border: 1px solid #90caf9; }
-    @media (max-width: 600px) {
-      #canvas-container { flex-direction: column; align-items: center; }
-      canvas { width: 95vw !important; height: 60vw !important; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Dust Cloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to ensure canvas fills available space and looks good */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
+            background-color: #0d1117; /* Dark background for space theme */
+            overflow: hidden; /* Prevent scrollbars */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            display: block; /* Remove extra space below canvas */
+            background-color: transparent; /* Canvas background will be transparent, body background shows */
+            border-radius: 1rem; /* Rounded corners for the canvas */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); /* Subtle glow effect */
+            max-width: 95vw; /* Ensure it fits on smaller screens */
+            max-height: 95vh; /* Ensure it fits vertically */
+            cursor: crosshair; /* Indicate interactivity */
+        }
+    </style>
 </head>
-<body>
-  <header>
-    <h1>Kids Drawing Website</h1>
-    <p>Draw, create, and share your art!</p>
-  </header>
-  <div id="toolbar">
-    <label>Tool:
-      <select id="tool">
-        <option value="brush">Brush</option>
-        <option value="pencil">Pencil</option>
-        <option value="eraser">Eraser</option>
-        <option value="rectangle">Rectangle</option>
-        <option value="circle">Circle</option>
-        <option value="line">Line</option>
-      </select>
-    </label>
-    <label>Color: <input type="color" id="color" value="#000000"></label>
-    <label>Size: <input type="range" id="size" min="1" max="30" value="5"></label>
-    <button id="undo">Undo</button>
-    <button id="redo">Redo</button>
-    <button id="clear">Clear</button>
-    <button id="save">Save</button>
-    <button id="download">Download</button>
-    <button id="animate">Animate</button>
-  </div>
-  <div id="canvas-container">
-    <canvas id="drawing-canvas" width="800" height="500"></canvas>
-  </div>
-  <section id="gallery">
-    <h2>Gallery</h2>
-    <div id="gallery-images"></div>
-  </section>
-  <script>
-    // Canvas setup
-    const canvas = document.getElementById('drawing-canvas');
-    const ctx = canvas.getContext('2d');
-    let drawing = false, startX = 0, startY = 0;
-    let tool = 'brush', color = '#000', size = 5;
-    let history = [], redoStack = [];
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <h1 class="text-3xl md:text-5xl font-bold text-white mb-6 text-center">
+        Cosmic Dust Cloud
+    </h1>
+    <p class="text-sm md:text-lg text-gray-400 mb-8 text-center max-w-2xl">
+        Move your mouse to interact with the cosmic dust particles. Watch them react to your presence!
+    </p>
+    <canvas id="cosmicDustCanvas" class="w-full h-full"></canvas>
 
-    function saveState() {
-      history.push(canvas.toDataURL());
-      if (history.length > 50) history.shift();
-      redoStack = [];
-      // Store history for animation
-      localStorage.setItem('drawingHistory', JSON.stringify(history));
-    }
+    <script>
+        // Get the canvas element and its 2D rendering context
+        const canvas = document.getElementById('cosmicDustCanvas');
+        const ctx = canvas.getContext('2d');
 
-    function restoreState(imgData) {
-      let img = new window.Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-      };
-      img.src = imgData;
-    }
+        // --- Configuration Variables ---
+        const NUM_PARTICLES = 1500; // Number of particles in the dust cloud
+        const PARTICLE_MIN_SIZE = 0.5; // Minimum particle radius
+        const PARTICLE_MAX_SIZE = 2.5; // Maximum particle radius
+        const PARTICLE_SPEED_MULTIPLIER = 0.05; // Base speed of particles
+        const INTERACTION_RADIUS = 150; // Radius around mouse where particles react
+        const INTERACTION_FORCE = 0.8; // How strongly particles repel/attract
+        const PARTICLE_COLOR = 'rgba(255, 255, 255, 0.6)'; // Color of particles (white with transparency)
+        const CONNECTION_DISTANCE = 80; // Max distance for particles to connect with lines
+        const CONNECTION_COLOR = 'rgba(0, 255, 255, 0.05)'; // Color of connection lines (cyan with transparency)
 
-    function getPointerPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      let x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-      let y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-      return { x, y };
-    }
+        // Array to store all particle objects
+        let particles = [];
 
-    function drawLine(x1, y1, x2, y2) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = size;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    }
+        // Mouse position object
+        let mouse = {
+            x: undefined,
+            y: undefined,
+            isDown: false // Track if mouse button is pressed
+        };
 
-    function drawShape(x1, y1, x2, y2, shape) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = size;
-      ctx.beginPath();
-      if (shape === 'rectangle') {
-        ctx.rect(x1, y1, x2 - x1, y2 - y1);
-      } else if (shape === 'circle') {
-        let r = Math.hypot(x2 - x1, y2 - y1);
-        ctx.arc(x1, y1, r, 0, 2 * Math.PI);
-      } else if (shape === 'line') {
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-      }
-      ctx.stroke();
-    }
+        // --- Particle Class Definition ---
+        class Particle {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
 
-    // Drawing events
-    let lastX, lastY, snapshot;
-    function startDraw(e) {
-      drawing = true;
-      let pos = getPointerPos(e);
-      startX = lastX = pos.x;
-      startY = lastY = pos.y;
-      if (tool === 'brush' || tool === 'pencil' || tool === 'eraser') {
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-      }
-      snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      if (tool === 'eraser') ctx.globalCompositeOperation = "destination-out";
-      else ctx.globalCompositeOperation = "source-over";
-      e.preventDefault();
-    }
+                // Random velocity for particles
+                this.velocity = {
+                    x: (Math.random() - 0.5) * PARTICLE_SPEED_MULTIPLIER,
+                    y: (Math.random() - 0.5) * PARTICLE_SPEED_MULTIPLIER
+                };
+            }
 
-    function draw(e) {
-      if (!drawing) return;
-      let pos = getPointerPos(e);
-      if (tool === 'brush' || tool === 'pencil') {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = size;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        lastX = pos.x; lastY = pos.y;
-      } else if (tool === 'eraser') {
-        ctx.lineWidth = size * 2;
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        lastX = pos.x; lastY = pos.y;
-      } else if (tool === 'rectangle' || tool === 'circle' || tool === 'line') {
-        ctx.putImageData(snapshot, 0, 0);
-        drawShape(startX, startY, pos.x, pos.y, tool);
-      }
-      e.preventDefault();
-    }
+            // Method to draw the particle
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
 
-    function endDraw(e) {
-      if (!drawing) return;
-      drawing = false;
-      if (tool === 'rectangle' || tool === 'circle' || tool === 'line') {
-        let pos = getPointerPos(e);
-        drawShape(startX, startY, pos.x, pos.y, tool);
-      }
-      saveState();
-      ctx.globalCompositeOperation = "source-over";
-      e.preventDefault();
-    }
+            // Method to update particle position and handle interactions
+            update() {
+                // Bounce off canvas edges
+                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                    this.velocity.x *= -1;
+                }
+                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                    this.velocity.y *= -1;
+                }
 
-    // Event listeners
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', endDraw);
-    canvas.addEventListener('mouseout', endDraw);
+                // Apply velocity
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
 
-    canvas.addEventListener('touchstart', startDraw, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', endDraw, { passive: false });
+                // Mouse interaction: repel particles if mouse is near
+                if (mouse.x !== undefined && mouse.y !== undefined) {
+                    const dx = this.x - mouse.x;
+                    const dy = this.y - mouse.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // Toolbar controls
-    document.getElementById('tool').onchange = e => tool = e.target.value;
-    document.getElementById('color').onchange = e => color = e.target.value;
-    document.getElementById('size').oninput = e => size = e.target.value;
+                    if (distance < INTERACTION_RADIUS) {
+                        const forceDirectionX = dx / distance;
+                        const forceDirectionY = dy / distance;
+                        const force = (INTERACTION_RADIUS - distance) / INTERACTION_RADIUS * INTERACTION_FORCE;
 
-    document.getElementById('undo').onclick = () => {
-      if (history.length > 1) {
-        redoStack.push(history.pop());
-        restoreState(history[history.length - 1]);
-      }
-    };
-    document.getElementById('redo').onclick = () => {
-      if (redoStack.length) {
-        let redoImg = redoStack.pop();
-        restoreState(redoImg);
-        history.push(redoImg);
-      }
-    };
-    document.getElementById('clear').onclick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      saveState();
-    };
-    document.getElementById('save').onclick = () => {
-      let imgData = canvas.toDataURL();
-      let gallery = document.getElementById('gallery-images');
-      let img = document.createElement('img');
-      img.src = imgData;
-      img.className = 'gallery-img';
-      gallery.appendChild(img);
-      saveState();
-    };
-    document.getElementById('download').onclick = () => {
-      let link = document.createElement('a');
-      link.download = 'drawing.png';
-      link.href = canvas.toDataURL();
-      link.click();
-    };
+                        // Apply force to velocity
+                        this.velocity.x += forceDirectionX * force;
+                        this.velocity.y += forceDirectionY * force;
+                    }
+                }
 
-    // Animate button handler
-    document.getElementById('animate').onclick = () => {
-      localStorage.setItem('drawingHistory', JSON.stringify(history));
-      window.location.href = 'animate.html';
-    };
+                this.draw();
+            }
+        }
 
-    // Init
-    window.onload = () => {
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      saveState();
-    };
-  </script>
+        // --- Initialization Function ---
+        function init() {
+            // Clear existing particles
+            particles = [];
+
+            // Set canvas dimensions to fill the window
+            canvas.width = window.innerWidth * 0.9; // 90% of window width
+            canvas.height = window.innerHeight * 0.8; // 80% of window height
+
+            // Create particles and add them to the array
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                const radius = Math.random() * (PARTICLE_MAX_SIZE - PARTICLE_MIN_SIZE) + PARTICLE_MIN_SIZE;
+                const x = Math.random() * (canvas.width - radius * 2) + radius;
+                const y = Math.random() * (canvas.height - radius * 2) + radius;
+                particles.push(new Particle(x, y, radius, PARTICLE_COLOR));
+            }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            // Clear the entire canvas for the next frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw each particle
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+
+                // Draw lines between nearby particles
+                for (let j = i; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < CONNECTION_DISTANCE) {
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        // Make lines more transparent the further apart the particles are
+                        ctx.strokeStyle = `rgba(0, 255, 255, ${CONNECTION_COLOR.split(',')[3].replace(')', '') * (1 - distance / CONNECTION_DISTANCE)})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Request the next animation frame
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners ---
+
+        // Update mouse position on mouse move
+        canvas.addEventListener('mousemove', (event) => {
+            // Get mouse position relative to the canvas
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = event.clientX - rect.left;
+            mouse.y = event.clientY - rect.top;
+        });
+
+        // Reset mouse position when mouse leaves the canvas
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = undefined;
+            mouse.y = undefined;
+        });
+
+        // Re-initialize particles and canvas size on window resize
+        window.addEventListener('resize', () => {
+            init(); // Re-initialize particles to fit new canvas size
+        });
+
+        // --- Start the application ---
+        // Initialize the canvas and particles when the window loads
+        window.onload = function() {
+            init();
+            animate(); // Start the animation loop
+        };
+    </script>
 </body>
 </html>
